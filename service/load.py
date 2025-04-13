@@ -1,10 +1,12 @@
-from datetime import date, datetime
+from datetime import datetime
 from io import StringIO
 import os
 import click
 import pandas as pd
-from psycopg2.errors import UndefinedTable
+from psycopg2.errors import ProgrammingError, UndefinedTable
 
+from sqlalchemy import text
+import sqlalchemy
 from sqlalchemy.engine import create_engine
 from sqlalchemy.orm import Session
 
@@ -23,7 +25,7 @@ class LoadingService:
 
     def _process(self, tablename: str, batch: pd.DataFrame):
         output = StringIO()
-        batch.to_csv(output, sep="\t", header=False)
+        batch.to_csv(output, sep="\t", header=False, index=False, encoding="utf8")
 
         output.seek(0)
         contents = output.getvalue()
@@ -89,10 +91,14 @@ class LoadingService:
         df = pd.concat(df_todos)
 
         try:
-            self._truncate_table(tablename)
-        except UndefinedTable:
-            df[:5].to_sql(tablename, con=self.engine, index=True)
-            self._truncate_table(tablename)
+            self.db.execute(text(f"TRUNCATE TABLE {tablename}"))
+            self.db.commit()
+        except sqlalchemy.exc.ProgrammingError:
+            conn = self.engine.raw_connection()
+            cur = conn.cursor()
+            ddl = pd.io.sql.get_schema(df, tablename, con=conn)
+            cur.execute(ddl)
+            conn.commit()
 
         tempo = self._batch_insert(df, tablename)
         click.echo(f"Sucesso. Concluído em {tempo}")

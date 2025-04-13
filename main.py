@@ -1,8 +1,12 @@
 import click
+from pandas.errors import DtypeWarning
 from service.extract import ExctractionService
 from service.load import LoadingService
 from settings import ROOT, DatabaseConfig
 from service.crawl import CrawlingService
+import warnings
+
+warnings.simplefilter(action="ignore", category=DtypeWarning)
 
 
 @click.group()
@@ -74,7 +78,6 @@ def load(
     database_uri = DatabaseConfig(
         dbname=dbname, username=username, password=password, host=host, port=port
     ).uri
-    click.echo(dir)
     load = LoadingService(dir, database_uri)
     load.run(table)
 

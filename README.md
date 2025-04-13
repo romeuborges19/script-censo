@@ -1,5 +1,7 @@
 ### Importação de microdados do censo escolar
 
-Ferramenta pessoal para baixar dados do censo escolar de vários anos, extrair os arquivos .csv, uni-los em uma base de dados e fazer a importação desses dados em um banco do PostgreSQL.
+Podia ter feito esse processo em 30 minutos com um Jupyter Notebook, mas fiz isso aqui.
 
-Projeto implementado como CLI, utilizando Clicker, Pandas e SQLAlchemy.
+Ferramenta pessoal para baixar dados do censo escolar e carregá-los em um banco do PostgreSQL.
+
+Implementado como CLI, utilizando Clicker, Pandas e SQLAlchemy.

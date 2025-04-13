@@ -23,12 +23,23 @@ def download(ano_limite: int, destino: str):
 
 @cli.command()
 @click.option("-d", "--dir", default=ROOT)
-def extract(dir: str):
+@click.option("-o", "--output", default="")
+@click.option("-a", "--ano-limite", default=2021)
+def extract(dir: str, output: str, ano_limite: int):
     if not dir.startswith("/"):
         dir = f"{ROOT}/{dir}"
 
-    crawl = ExctractionService(dir)
+    crawl = CrawlingService(ano_limite, dir)
     crawl.run()
+
+    if output and not output.startswith("/"):
+        output = f"{ROOT}/{output}"
+
+    if not output:
+        output = dir
+
+    e = ExctractionService(dir, output)
+    e.run()
 
 
 @cli.command()

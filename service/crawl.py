@@ -15,7 +15,7 @@ class CrawlingService:
         self.anos = list(range(ANO_MAXIMO, ano_limite - 1, -1))
         self.destino = destino
 
-    def _baixar_arquivos(self, urls: List[str]):
+    def _baixar_arquivos(self, urls: List[str]) -> str | None:
         current_files = os.listdir(self.destino)
         arquivos_baixados = []
 
@@ -34,16 +34,16 @@ class CrawlingService:
                 click.echo(f"Donwload concluído. Arquivo salvo em: {path}")
         except Exception as e:
             click.echo(f"Não foi possível baixar arquivo. Erro: {e}")
-            return False
+            return None
 
-        return arquivos_baixados
+        return self.destino
 
-    def run(self) -> bool:
+    def run(self) -> str | None:
         try:
             response = requests.get(URL_MICRODADOS)
         except Exception as e:
             click.echo(f"Não foi possível acessar a URL {URL_MICRODADOS}. Erro: {e}")
-            return False
+            return None
 
         soup = BeautifulSoup(response.text, "html.parser")
         links = soup.select("a[href]")

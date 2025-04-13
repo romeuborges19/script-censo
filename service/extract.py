@@ -6,8 +6,9 @@ import shutil
 class ExctractionService:
     """Responsável por extrair o .csv desejado do arquivo baixado."""
 
-    def __init__(self, destino: str) -> None:
+    def __init__(self, destino: str, output: str) -> None:
         self.destino = destino
+        self.output = output
 
     def run(self):
         arquivos = os.listdir(self.destino)
@@ -23,18 +24,18 @@ class ExctractionService:
         copias = []
         for id, arquivo in enumerate(arquivos_extrair):
             with zipfile.ZipFile(arquivo, "r") as zip_ref:
-                destino = f"{self.destino}/{nomes[id]}"
-                zip_ref.extractall(destino)
+                output = f"{self.output}/{nomes[id]}"
+                zip_ref.extractall(output)
 
-                pasta_extracao = f"{destino}/{os.listdir(destino)[0]}/dados"
+                pasta_extracao = f"{output}/{os.listdir(output)[0]}/dados"
                 for csv in os.listdir(pasta_extracao):
                     if csv.startswith("microdados"):
                         copia = shutil.copy(
-                            f"{pasta_extracao}/{csv}", f"{self.destino}/{csv}"
+                            f"{pasta_extracao}/{csv}", f"{self.output}/{csv}"
                         )
                         copias.append(copia)
                         break
 
-                shutil.rmtree(destino)
+                shutil.rmtree(output)
 
         return copias

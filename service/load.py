@@ -3,6 +3,7 @@ from io import StringIO
 import os
 import click
 import pandas as pd
+from psycopg2.errors import UndefinedTable
 
 from sqlalchemy.engine import create_engine
 from sqlalchemy.orm import Session
@@ -20,50 +21,28 @@ class LoadingService:
         self.db = Session(self.engine)
         self.dir = dir
 
-    def _process(self, batch: pd.DataFrame, conn):
-        start = datetime.now()
-
+    def _process(self, tablename: str, batch: pd.DataFrame):
         output = StringIO()
         batch.to_csv(output, sep="\t", header=False)
-        end = datetime.now()
-        click.echo(f"Conversão para CSV:{end - start}")
 
         output.seek(0)
         contents = output.getvalue()
 
-        start = datetime.now()
-
         conn = self.engine.raw_connection()
         cur = conn.cursor()
-        cur.copy_from(output, "microdados", null="")
+
+        cur.copy_from(output, tablename, null="")
+
         conn.commit()
         cur.close()
         conn.close()
 
-        end = datetime.now()
-
-        click.echo(f"Inserção: {end - start}")
-
-    def run(self):
-        conn = self.engine.raw_connection()
-        cur = conn.cursor()
-        cur.execute("truncate table microdados")
-        conn.commit()
-        cur.close()
-
-        arquivos = [
-            f"{self.dir}/{a}" for a in os.listdir(self.dir) if a.split(".")[-1] == "csv"
-        ]
-
-        df_todos = [pd.read_csv(a, delimiter=";", encoding="latin1") for a in arquivos]
-
-        df = pd.concat(df_todos)
-
+    def _batch_insert(self, df: pd.DataFrame, tablename: str):
+        tamanho = len(df)
         offset = 0
         num_chunks = 10
-        chunksize = int(len(df) / num_chunks) + 1
+        chunksize = int(tamanho / num_chunks) + 1
 
-        tamanho = len(df)
         lower_limit = offset
         upper_limit = offset
 
@@ -72,12 +51,12 @@ class LoadingService:
         while upper_limit <= tamanho:
             lower_limit = offset
             upper_limit = lower_limit + chunksize
-            if upper_limit > len(df):
-                upper_limit = len(df)
+            if upper_limit > tamanho:
+                upper_limit = tamanho
 
             df_batch = df[lower_limit:upper_limit]
 
-            p = Process(target=self._process, args=(df_batch, self.engine))
+            p = Process(target=self._process, args=(tablename, df_batch))
             p.start()
 
             processes.append(p)
@@ -91,5 +70,29 @@ class LoadingService:
                 break
 
             offset += chunksize
+
         end = datetime.now()
-        click.echo(f"total: {end - start}")
+        return end - start
+
+    def _truncate_table(self, tablename: str):
+        conn = self.engine.raw_connection()
+        cur = conn.cursor()
+        cur.execute(f"truncate table {tablename}")
+        conn.commit()
+        cur.close()
+
+    def run(self, tablename: str):
+        arquivos = [
+            f"{self.dir}/{a}" for a in os.listdir(self.dir) if a.split(".")[-1] == "csv"
+        ]
+        df_todos = [pd.read_csv(a, delimiter=";", encoding="latin1") for a in arquivos]
+        df = pd.concat(df_todos)
+
+        try:
+            self._truncate_table(tablename)
+        except UndefinedTable:
+            df[:5].to_sql(tablename, con=self.engine, index=True)
+            self._truncate_table(tablename)
+
+        tempo = self._batch_insert(df, tablename)
+        click.echo(f"Sucesso. Concluído em {tempo}")

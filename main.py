@@ -11,8 +11,13 @@ def cli():
 
 
 @cli.command()
-@click.option("-a", "--ano-limite", default=2021)
-@click.option("-d", "--destino", default=ROOT)
+@click.option(
+    "-a",
+    "--ano-limite",
+    default=2021,
+    help="Os downloads serão feitos de 2024 até o ano especificado.",
+)
+@click.option("-o", "--output", default=ROOT, help="Diretório de destino do download.")
 def download(ano_limite: int, destino: str):
     if not destino.startswith("/"):
         destino = f"{ROOT}/{destino}"
@@ -22,9 +27,16 @@ def download(ano_limite: int, destino: str):
 
 
 @cli.command()
-@click.option("-d", "--dir", default=ROOT)
-@click.option("-o", "--output", default="")
-@click.option("-a", "--ano-limite", default=2021)
+@click.option(
+    "-d", "--dir", default=ROOT, help="Diretório onde os arquivos .zip estão."
+)
+@click.option("-o", "--output", default="", help="Diretório de destino do download.")
+@click.option(
+    "-a",
+    "--ano-limite",
+    default=2021,
+    help="Os downloads serão feitos de 2024 até o ano especificado.",
+)
 def extract(dir: str, output: str, ano_limite: int):
     if not dir.startswith("/"):
         dir = f"{ROOT}/{dir}"
@@ -49,13 +61,22 @@ def extract(dir: str, output: str, ano_limite: int):
 @click.option("-u", "--username", default="postgres")
 @click.option("-p", "--password", default="postgres")
 @click.option("--dbname", required=True)
-def load(dir: str, host: str, port: int, username: str, password: str, dbname: str):
+@click.option("-t", "--table", required=True)
+def load(
+    dir: str,
+    host: str,
+    port: int,
+    username: str,
+    password: str,
+    dbname: str,
+    table: str,
+):
     database_uri = DatabaseConfig(
         dbname=dbname, username=username, password=password, host=host, port=port
     ).uri
     click.echo(dir)
     load = LoadingService(dir, database_uri)
-    load.run()
+    load.run(table)
 
 
 if __name__ == "__main__":

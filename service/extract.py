@@ -6,19 +6,19 @@ import shutil
 class ExctractionService:
     """Responsável por extrair o .csv desejado do arquivo baixado."""
 
-    def __init__(self, destino: str, output: str) -> None:
-        self.destino = destino
+    def __init__(self, origem: str, output: str) -> None:
+        self.origem = origem
         self.output = output
 
     def run(self):
-        arquivos = os.listdir(self.destino)
+        arquivos = os.listdir(self.origem)
         arquivos_extrair = []
         nomes = []
 
         for arquivo in arquivos:
             nome, extensao = arquivo.split(".")
             if extensao == "zip":
-                arquivos_extrair.append(f"{self.destino}/{arquivo}")
+                arquivos_extrair.append(f"{self.origem}/{arquivo}")
                 nomes.append(nome)
 
         copias = []
